@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Student Profile</title>
+<style>
+body{font-family:Inter,system-ui;margin:0;background:#0d1117;color:#e6eef8}
+.top{background:#161b22;padding:15px;font-size:20px;font-weight:600}
+.container{padding:20px}
+.card{background:#161b22;padding:18px;border-radius:12px;margin-bottom:18px}
+input,textarea{width:100%;padding:10px;margin-top:6px;border-radius:8px;border:1px solid #30363d;background:#0d1117;color:#e6eef8}
+button{padding:10px;border-radius:8px;border:none;background:#3a8bfd;color:white;cursor:pointer;margin-top:10px}
+.profile-pic{width:120px;height:120px;border-radius:10px;background:#0b0f14;display:block;object-fit:cover;border:1px solid #222}
+.small{font-size:12px;color:#a6b3c4}
+</style>
+</head>
+<body>
+
+<div class="top">Student Profile</div>
+<div class="container">
+
+<div id="profileCard" class="card">
+  <img id="photo" class="profile-pic" src="" alt="No photo">
+  <div style="margin-top:10px">
+    <input id="name" placeholder="Full name">
+    <input id="grade" placeholder="Grade">
+    <input id="age" placeholder="Age">
+    <input id="parentName" placeholder="Parent name">
+    <input type="file" id="photoInput" accept="image/*">
+    <button onclick="saveProfile()">Save Profile</button>
+  </div>
+  <div id="status" class="small" style="margin-top:8px"></div>
+</div>
+
+</div>
+
+<script>
+const params = new URLSearchParams(location.search);
+const student = params.get("student");
+
+// load storage
+let PROFILES = JSON.parse(localStorage.getItem("PROFILES") || "{}");
+let STUDENTS = JSON.parse(localStorage.getItem("STUDENTS") || "{}");
+
+// ensure profile exists
+if(!PROFILES[student]) {
+  // try to find grade from STUDENTS
+  let guessedGrade = "";
+  for(const g in STUDENTS){
+    if(STUDENTS[g].some(s=>s.user===student)) { guessedGrade = g; break; }
+  }
+  PROFILES[student] = { name: student, grade: guessedGrade, age: "", parent: "", photo: "" };
+  localStorage.setItem("PROFILES", JSON.stringify(PROFILES));
+}
+
+// populate
+const p = PROFILES[student];
+document.getElementById("name").value = p.name || "";
+document.getElementById("grade").value = p.grade || "";
+document.getElementById("age").value = p.age || "";
+document.getElementById("parentName").value = p.parent || "";
+if(p.photo){ document.getElementById("photo").src = p.photo; } else { document.getElementById("photo").src = ""; document.getElementById("photo").alt="No photo"; }
+
+// handle photo upload
+document.getElementById("photoInput").addEventListener("change", (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(evt){
+    const dataUrl = evt.target.result;
+    document.getElementById("photo").src = dataUrl;
+    PROFILES[student].photo = dataUrl;
+    localStorage.setItem("PROFILES", JSON.stringify(PROFILES));
+    document.getElementById("status").innerText = "Photo uploaded (saved).";
+  };
+  reader.readAsDataURL(file);
+});
+
+// save profile
+function saveProfile(){
+  PROFILES = JSON.parse(localStorage.getItem("PROFILES") || "{}");
+  if(!PROFILES[student]) PROFILES[student] = {};
+  PROFILES[student].name = document.getElementById("name").value.trim();
+  PROFILES[student].grade = document.getElementById("grade").value.trim();
+  PROFILES[student].age = document.getElementById("age").value.trim();
+  PROFILES[student].parent = document.getElementById("parentName").value.trim();
+  // photo already updated on upload
+  localStorage.setItem("PROFILES", JSON.stringify(PROFILES));
+  document.getElementById("status").innerText = "Profile saved.";
+  // Also ensure STUDENTS grade matches if needed
+  const newGrade = PROFILES[student].grade;
+  if(newGrade){
+    let STUD = JSON.parse(localStorage.getItem("STUDENTS") || "{}");
+    // remove student from other grades
+    for(const g in STUD){
+      STUD[g] = STUD[g].filter(s=> s.user !== student);
+    }
+    if(!STUD[newGrade]) STUD[newGrade] = [];
+    if(!STUD[newGrade].some(s=>s.user===student)) STUD[newGrade].push({user:student, pass:""});
+    localStorage.setItem("STUDENTS", JSON.stringify(STUD));
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Parent Dashboard</title>
+<style>
+body{font-family:Inter,system-ui;margin:0;background:#0d1117;color:#e6eef8}
+.top{background:#161b22;padding:15px;font-size:22px;font-weight:600}
+.container{padding:20px}
+.card{background:#161b22;padding:18px;border-radius:12px;margin-bottom:18px}
+.item{background:#1d232c;padding:10px;border-radius:8px;margin-bottom:10px}
+.small{font-size:12px;color:#a6b3c4}
+</style>
+</head>
+<body>
+
+<div class="top">Parent Dashboard</div>
+<div class="container">
+
+<div id="welcome" class="card"></div>
+
+<div class="card">
+<h3>Child's Timetable</h3>
+<div id="timetable"></div>
+</div>
+
+<div class="card">
+<h3>Today's Meal</h3>
+<div id="meal"></div>
+</div>
+
+<div class="card">
+<h3>Announcements</h3>
+<div id="news"></div>
+</div>
+
+</div>
+
+<script>
+// URL params
+const params = new URLSearchParams(location.search);
+const parent = params.get("parent");
+const child  = params.get("child");
+
+// Welcome
+document.getElementById("welcome").innerHTML =
+  `<h2>Welcome, ${parent}</h2><div class='small'>Child: ${child}</div>`;
+
+// Load saved data from localStorage
+let STUDENTS = JSON.parse(localStorage.getItem("STUDENTS") || "{}");
+let LESSONS  = JSON.parse(localStorage.getItem("LESSONS") || "{}");
+let MEALS    = localStorage.getItem("MEALS") || "";
+let ANN      = JSON.parse(localStorage.getItem("ANNOUNCEMENTS") || "[]");
+
+// Determine child’s grade
+let childGrade = null;
+for(const g in STUDENTS){
+  STUDENTS[g].forEach(s=>{
+    if(s.user === child){
+      childGrade = g;
+    }
+  });
+}
+
+// Render timetable
+let tt = document.getElementById("timetable");
+
+if(childGrade && LESSONS[childGrade]){
+  LESSONS[childGrade].forEach((lesson,i)=>{
+    tt.innerHTML += `
+      <div class='item'>
+        <b>Lesson ${i+1}</b><br>
+        <span class='small'>${lesson}</span>
+      </div>`;
+  });
+} else {
+  tt.innerHTML = "No timetable found for this child.";
+}
+
+// Render meal
+document.getElementById("meal").innerHTML =
+  `<div class="item">${MEALS || "No meal set yet."}</div>`;
+
+// Render announcements
+let newsBox = document.getElementById("news");
+if(ANN.length === 0){
+  newsBox.innerHTML = "<div class='item'>No announcements yet.</div>";
+} else {
+  ANN.forEach(a=>{
+    newsBox.innerHTML += `<div class='item'>${a}</div>`;
+  });
+}
+</script>
+
+</body>
+</html>

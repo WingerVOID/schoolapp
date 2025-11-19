@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Teacher Dashboard</title>
+<style>
+body{font-family:Inter,system-ui;margin:0;background:#0d1117;color:#e6eef8}
+.top{background:#161b22;padding:15px;font-size:22px;font-weight:600}
+.container{padding:20px}
+.card{background:#161b22;padding:18px;border-radius:12px;margin-bottom:18px}
+.item{background:#1d232c;padding:10px;border-radius:8px;margin-bottom:10px}
+.small{color:#a6b3c4;font-size:12px}
+button{padding:8px 14px;border-radius:8px;border:none;background:#3a8bfd;color:white;cursor:pointer;margin-top:10px}
+textarea,input{width:100%;padding:10px;background:#0d1117;border:1px solid #30363d;border-radius:8px;color:white;margin-top:6px}
+</style>
+</head>
+<body>
+
+<div class="top">Teacher Dashboard</div>
+
+<div class="container">
+
+<div id="welcome" class="card"></div>
+
+<div class="card">
+<h3>Your Classes Today</h3>
+<div id="classes"></div>
+</div>
+
+</div>
+
+<script>
+const params=new URLSearchParams(location.search);
+const teacher=params.get("teacher"); 
+const subject=params.get("subject");
+
+document.getElementById("welcome").innerHTML =
+  `<h2>Welcome, ${teacher}</h2><div class='small'>Subject: ${subject}</div>`;
+
+// load lessons
+let LESSONS = JSON.parse(localStorage.getItem("LESSONS") || "{}");
+
+let classBox=document.getElementById("classes");
+
+for(const grade in LESSONS){
+  LESSONS[grade].forEach((entry,i)=>{
+    if(entry.toLowerCase().includes(subject.toLowerCase())){
+      classBox.innerHTML+=`
+        <div class="item">
+        <b>${entry}</b><br>
+        <span class='small'>Grade ${grade} — Lesson ${i+1}</span>
+        </div>`;
+    }
+  });
+}
+</script>
+
+</body>
+</html>

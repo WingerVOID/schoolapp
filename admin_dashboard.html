@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Admin Dashboard</title>
+<style>
+body{font-family:Inter,system-ui;margin:0;background:#0d1117;color:#e6eef8}
+.top{background:#161b22;padding:15px;font-size:22px;font-weight:600}
+.container{padding:20px}
+.card{background:#161b22;padding:18px;border-radius:12px;margin-bottom:18px}
+input,select{width:100%;padding:10px;margin-top:6px;border-radius:8px;border:1px solid #30363d;background:#0d1117;color:#e6eef8}
+button{padding:10px;border-radius:8px;border:none;background:#3a8bfd;color:white;cursor:pointer;margin-top:10px}
+.item{background:#1d232c;padding:10px;border-radius:8px;margin-bottom:10px}
+.small{color:#9AA4B2;font-size:12px}
+.link{color:#6ee7b7;cursor:pointer;text-decoration:underline}
+</style>
+</head>
+<body>
+
+<div class="top">Admin Dashboard</div>
+<div class="container">
+
+<div class="card">
+<h2>Student / Teacher / Parent Management</h2>
+</div>
+
+<!-- STUDENTS -->
+<div class="card">
+<h3>Manage Students</h3>
+<input id="studentUser" placeholder="Student Username">
+<input id="studentPass" placeholder="Password">
+<input id="studentGrade" placeholder="Grade (e.g., 7A)">
+<button onclick="addStudent()">Add Student</button>
+<div id="studentList"></div>
+</div>
+
+<!-- TEACHERS -->
+<div class="card">
+<h3>Manage Teachers</h3>
+<input id="teacherUser" placeholder="Teacher Username">
+<input id="teacherPass" placeholder="Password">
+<input id="teacherSubject" placeholder="Subject (e.g., Math)">
+<button onclick="addTeacher()">Add Teacher</button>
+<div id="teacherList"></div>
+</div>
+
+<!-- PARENTS -->
+<div class="card">
+<h3>Manage Parents</h3>
+<input id="parentUser" placeholder="Parent Username">
+<input id="parentPass" placeholder="Password">
+<input id="parentChild" placeholder="Child Username">
+<button onclick="addParent()">Add Parent</button>
+<div id="parentList"></div>
+</div>
+
+<!-- LESSONS -->
+<div class="card">
+<h3>Manage Lessons (7 per grade)</h3>
+<input id="lessonGrade" placeholder="Grade (e.g., 7A)">
+<div id="lessonInputs"></div>
+<button onclick="saveLessons()">Save Lessons</button>
+<div id="lessonSavedStatus"></div>
+</div>
+
+<!-- MEALS -->
+<div class="card">
+<h3>Manage Daily Meal Menu</h3>
+<input id="mealText" placeholder="Meal for today (same for all grades)">
+<button onclick="saveMeals()">Save Meal</button>
+<div id="mealView"></div>
+</div>
+
+<!-- ANNOUNCEMENTS -->
+<div class="card">
+<h3>Announcements</h3>
+<textarea id="annText" placeholder="Write announcement..." rows="3" style="width:100%;background:#0d1117;color:white;border:1px solid #30363d;padding:8px;border-radius:8px"></textarea>
+<button onclick="postAnnouncement()">Post Announcement</button>
+<div id="annList"></div>
+</div>
+
+</div>
+
+<script>
+// initialize storage objects
+let STUDENTS = JSON.parse(localStorage.getItem("STUDENTS") || "{}");
+let TEACHERS = JSON.parse(localStorage.getItem("TEACHERS") || "[]");
+let PARENTS  = JSON.parse(localStorage.getItem("PARENTS") || "[]");
+let LESSONS  = JSON.parse(localStorage.getItem("LESSONS") || "{}");
+let MEALS    = localStorage.getItem("MEALS") || "";
+let ANN      = JSON.parse(localStorage.getItem("ANNOUNCEMENTS") || "[]");
+let MESSAGES = JSON.parse(localStorage.getItem("MESSAGES") || "{}");
+let PROFILES = JSON.parse(localStorage.getItem("PROFILES") || "{}");
+
+/* STUDENTS */
+function addStudent(){
+  let u=document.getElementById("studentUser").value.trim();
+  let p=document.getElementById("studentPass").value.trim();
+  let g=document.getElementById("studentGrade").value.trim();
+  if(!u||!p||!g) return alert("Fill all fields");
+  if(!STUDENTS[g]) STUDENTS[g]=[];
+  // avoid dup
+  if(STUDENTS[g].some(s=>s.user===u)) return alert("Student exists in that grade");
+  STUDENTS[g].push({user:u, pass:p});
+  // create default profile if missing
+  if(!PROFILES[u]) PROFILES[u] = {name:u, grade:g, age:"", parent:"", photo:""};
+  saveAll();
+  renderStudents();
+}
+function renderStudents(){
+  let out="";
+  for(const g in STUDENTS){
+    out+=`<div class='item'><b>Grade ${g}</b><br>`;
+    STUDENTS[g].forEach(s=> {
+      out+=`${s.user} &nbsp; <span class="link" onclick="openProfile('${s.user}')">View Profile</span><br>`;
+    });
+    out+=`</div>`;
+  }
+  document.getElementById("studentList").innerHTML=out;
+}
+
+/* TEACHERS */
+function addTeacher(){
+  let u=document.getElementById("teacherUser").value.trim();
+  let p=document.getElementById("teacherPass").value.trim();
+  let s=document.getElementById("teacherSubject").value.trim();
+  if(!u||!p||!s) return alert("Fill all fields");
+  TEACHERS.push({user:u, pass:p, subject:s});
+  saveAll();
+  renderTeachers();
+}
+function renderTeachers(){
+  let out="";
+  TEACHERS.forEach(t=>{
+    out+=`<div class='item'><b>${t.subject}</b><br>${t.user}</div>`;
+  });
+  document.getElementById("teacherList").innerHTML=out;
+}
+
+/* PARENTS */
+function addParent(){
+  let u=document.getElementById("parentUser").value.trim();
+  let p=document.getElementById("parentPass").value.trim();
+  let c=document.getElementById("parentChild").value.trim();
+  if(!u||!p||!c) return alert("Fill all fields");
+  PARENTS.push({user:u, pass:p, child:c});
+  saveAll();
+  renderParents();
+}
+function renderParents(){
+  let out="";
+  PARENTS.forEach(p=>{
+    out+=`<div class='item'>${p.user} → Child: ${p.child}</div>`;
+  });
+  document.getElementById("parentList").innerHTML=out;
+}
+
+/* LESSONS */
+function makeLessonInputs() {
+  let html="";
+  for(let i=1;i<=7;i++){
+    html+=`<input id="l${i}" placeholder="Lesson ${i}: Subject (Teacher, Room)">`;
+  }
+  document.getElementById("lessonInputs").innerHTML=html;
+}
+makeLessonInputs();
+
+function saveLessons(){
+  let g=document.getElementById("lessonGrade").value.trim();
+  if(!g) return alert("Enter grade");
+  let arr=[];
+  for(let i=1;i<=7;i++){
+    let val=document.getElementById("l"+i).value.trim();
+    arr.push(val || "Free");
+  }
+  LESSONS[g]=arr;
+  saveAll();
+  document.getElementById("lessonSavedStatus").innerHTML=`<div class="small">Saved lessons for grade ${g}</div>`;
+}
+
+/* MEALS */
+function saveMeals(){
+  MEALS = document.getElementById("mealText").value.trim();
+  localStorage.setItem("MEALS", MEALS);
+  renderMeals();
+}
+function renderMeals(){
+  document.getElementById("mealView").innerHTML = `<div class="item"><b>Today’s Meal:</b><br>${MEALS || "Not set"}</div>`;
+}
+
+/* ANNOUNCEMENTS */
+function postAnnouncement(){
+  const text = document.getElementById("annText").value.trim();
+  if(!text) return alert("Write announcement");
+  ANN.unshift({text, time: new Date().toLocaleString()});
+  localStorage.setItem("ANNOUNCEMENTS", JSON.stringify(ANN));
+  renderAnn();
+  document.getElementById("annText").value = "";
+}
+function renderAnn(){
+  let out="";
+  ANN.forEach(a=>{
+    out += `<div class="item">${a.text} <div class="small">${a.time}</div></div>`;
+  });
+  document.getElementById("annList").innerHTML = out || "<div class='item'>No announcements</div>";
+}
+
+/* PROFILES */
+function openProfile(username){
+  // open profile page
+  window.open(`profile.html?student=${encodeURIComponent(username)}`, "_blank");
+}
+
+/* MESSAGES (ensure container exists) */
+if(!MESSAGES) MESSAGES = {};
+localStorage.setItem("MESSAGES", JSON.stringify(MESSAGES));
+
+/* SAVE ALL */
+function saveAll(){
+  localStorage.setItem("STUDENTS", JSON.stringify(STUDENTS));
+  localStorage.setItem("TEACHERS", JSON.stringify(TEACHERS));
+  localStorage.setItem("PARENTS", JSON.stringify(PARENTS));
+  localStorage.setItem("LESSONS", JSON.stringify(LESSONS));
+  localStorage.setItem("PROFILES", JSON.stringify(PROFILES));
+  // MEALS and ANN already stored when set
+}
+
+/* INITIAL RENDER */
+renderStudents();
+renderTeachers();
+renderParents();
+renderMeals();
+renderAnn();
+</script>
+
+</body>
+</html>
