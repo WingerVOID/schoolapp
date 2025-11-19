@@ -1,4 +1,3 @@
-School portal with login, timetable, lessons, meals, and dashboards.
 <!doctype html>
 <html lang="en">
 <head>
